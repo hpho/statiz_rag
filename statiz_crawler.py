@@ -1,32 +1,34 @@
-import requests
-import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
+import pandas as pd
+import time
 
-url = 'http://www.statiz.co.kr/stat.php?mid=stat&re=0&ys=1982&ye=2023&se=0&te=&tm=&ty=0&qu=auto&po=0&as=&ae=&hi=&un=&pl=&da=1&o1=WAR_ALL_ADJ&o2=TPA&de=1&tr=&cv=&ml=1&sn=30&pa=0&si=&cn=&lr=1'
-headers = {'User-Agent': 'Mozilla/5.0'}
+def crawl_kbo_hitter_2024_selenium():
+    # 크롬 드라이버 경로 (설치한 위치로 수정)
+    chrome_path = "C:/path/to/chromedriver.exe"
+    service = Service(executable_path=chrome_path)
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')  # 창 안 띄움
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
 
-try:
-    response = requests.get(url, headers=headers, timeout=10)
-    response.raise_for_status()
-except requests.exceptions.RequestException as e:
-    print(f"요청 오류: {e}")
-    exit()
+    driver = webdriver.Chrome(service=service, options=options)
+    url = "https://www.koreabaseball.com/Record/Player/HitterBasic/Basic1.aspx"
+    driver.get(url)
 
-soup = BeautifulSoup(response.text, 'html.parser')
-table = soup.find_all("table")[0]
+    time.sleep(3)  # JS 렌더링 대기 (네트워크 상황에 따라 조정)
 
-rows = table.find_all("tr")[3:]
-data = []
-for tr in rows:
-    tds = tr.find_all("td")
-    if len(tds) == 31:
-        data.append([td.get_text(strip=True) for td in tds])
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    driver.quit()
 
-columns = ["순", "이름", "연도", "WAR", "-", "타석", "타수", "득점", "안타", "2루타", "3루타", "홈런", "루타", "타점", 
-           "도루", "도루실패", "볼넷", "사구", "고의사구", "삼진", "병살", "희생타", "희생플라이", "타율", "출루", 
-           "장타", "OPS", "wOBA", "wRC+", "WAR2"]
+    table = soup.find("table", {"class": "tData"})
+    df = pd.read_html(str(table))[0]
 
-df = pd.DataFrame(data, columns=columns)
+    return df
 
-df.to_csv("statiz.csv", index=False, encoding='utf-8-sig')
-print("📁 statiz.csv 저장 완료!")
+# 사용 예시
+if __name__ == "__main__":
+    df = crawl_kbo_hitter_2024_selenium()
+    print(df.head())
+    df.to_csv("kbo_hitter_2024.csv", index=False, encoding="utf-8-sig")
