@@ -17,3 +17,10 @@ DB	SQLite (or MySQL/PostgreSQL for 확장성)
 API 서버	FastAPI
 SQLAlchemy (pandas)
 streamlit
+
+my_sql_api_project/
+├── main.py                    ← FastAPI 앱
+├── db/
+│   └── kbo_stats.db           ← SQLite DB
+├── .env                       ← API 키 등 민감정보
+├── requirements.txt
